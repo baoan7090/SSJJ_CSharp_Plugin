@@ -1,5 +1,6 @@
-﻿using H4ck.Helper;
-using System.Runtime.InteropServices;
+﻿using Assets.Scripts.Input;
+using H4ck.Helper;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace H4ck.h4ckFuncs
@@ -11,17 +12,19 @@ namespace H4ck.h4ckFuncs
             {
                 "鼠标左键",
                 "鼠标右键",
-                "鼠标侧键",
-                "F",
+                "鼠标上侧键",
+				"鼠标下侧键",
+				"F",
                 "Control",
                 "Alt"
             }; //自瞄热键_用于显示
         internal static int KeyCode_ = 5;
-        internal static KeyCode[] AimKeyCode = new KeyCode[6]
-            {
-                KeyCode.Mouse0,
-                KeyCode.Mouse1,
-                KeyCode.Mouse3,
+		internal static KeyCode[] AimKeyCode = new KeyCode[7]
+			{
+				KeyCode.Mouse0,
+				KeyCode.Mouse1,
+				KeyCode.Mouse3,
+				KeyCode.Mouse4,
                 KeyCode.F,
                 KeyCode.LeftControl,
                 KeyCode.LeftAlt
@@ -31,10 +34,10 @@ namespace H4ck.h4ckFuncs
         {
             if (!Check.CheckIsLoadOver) { return; }
 			if (GetData.me.IsDead()) { return; } //死亡后不触发
-			if(GetData.A1mt4rget == null) { return; } //无自瞄目标 -> 返回
+			if (GetData.A1mt4rget == null) { return; } //无自瞄目标 -> 返回
 
             //取自瞄目标实体坐标
-            Vector3 pos = GetData.A1mt4rget.GetCompenstatePos(GetData.A1mt4rget.fpos.Change.ࢱ);
+            Vector3 pos = GetData.A1mt4rget.GetPosition2();
             //转世界坐标
             Vector3 a = PosHelper.EntityToWorld(pos);
             //转屏幕坐标 
@@ -60,51 +63,178 @@ namespace H4ck.h4ckFuncs
 		bool Aim(Vector2 bone) //自瞄逻辑(复制粘贴)
 		{
 			if (GetData.A1mt4rget == null || bone == null) { return false; }  //如果自瞄目标不存在 或 骨骼不存在 -> 返回假
-			Vector2 Aimtarget = new Vector2(bone.x, Screen.height - bone.y); 
+			Vector2 Aimtarget = new Vector2(bone.x, Screen.height - bone.y);
 
 
-            //获取自瞄点X Y坐标
-			double DistX = Aimtarget.x - Screen.width / 2f;
-			double DistY = Aimtarget.y - Screen.height / 2f;
-            /*
-             另一种获取XY坐标写法(未测试)
-             Vector2 Dist;
-             Dist.X = Aimtarget.x - Screen.width / 2f;
-             Dist.Y = Aimtarget.y - Screen.height / 2f;
-             */
+			//获取自瞄点X Y坐标
 
-            //设置平滑 0.2需要配合游戏内10灵敏度+0鼠标平滑，否则会乱飘
-            DistX /= 0.2;
-			DistY /= 0.2;
+			Vector2 Dist = new Vector2(Aimtarget.x - Screen.width / 2f / 0.2f, Aimtarget.y - Screen.height / 2f / 0.2f);
 
-            //利用鼠标事件自瞄，移动到自瞄点
-            mouse_event(1, (int)DistX, (int)DistY, 0, 0);
+
+            //利用伪造(输入)自瞄
+            输入.forceAxis = Dist;
 
             return true;
 		}
 
         //获取自瞄坐标(世界坐标)(复制粘贴)
-		Vector3 GetAimBotPos(PlayerEntity Target)
+		Vector3 GetAimBotPos(PlayerEntity target)
 		{
 			Vector3 vector = Vector3.zero;
 			Transform transform = null;
-			Transform transform2;
 			if (vector == Vector3.zero)
 			{
-				transform = Target.GetBone("Bip01_Head");
-				transform2 = Target.GetBone("Bip01_HeadNub");
-				if (transform != null && transform2 != null)
+				transform = target.GetBone("Bip01_Head");
+				Transform bone = target.GetBone("Bip01_HeadNub");
+				if (transform != null && bone != null)
 				{
-					vector = (transform.position + transform2.position) / 2f;
+					vector = (transform.position + bone.position) / 2f;
+				}
+			}
+			if (vector == Vector3.zero)
+			{
+				Transform bone2 = target.GetBone("Bone002");
+				Transform bone3 = target.GetBone("Bone004");
+				if (bone2 != null && bone3 != null)
+				{
+					vector = (bone2.position + bone3.position) / 2f;
+				}
+			}
+			if (vector == Vector3.zero)
+			{
+				Transform bone4 = target.GetBone("Bone001");
+				Transform bone5 = target.GetBone("Bone003");
+				if (transform != null && bone4 != null && bone5 != null)
+				{
+					Vector3 b = (bone4.position + bone5.position) / 2f;
+					vector = (transform.position + b) / 2f;
+				}
+			}
+			if (vector == Vector3.zero)
+			{
+				Transform bone6 = target.GetBone("Bone005");
+				if (transform != null && bone6 != null)
+				{
+					vector = (transform.position + bone6.position) / 2f;
 				}
 			}
 			if (vector == Vector3.zero && transform != null)
 			{
 				vector = transform.position;
 			}
+
 			return vector;
 		}
-		[DllImport("user32.dll")]
-		static extern void mouse_event(int dwFlags, int dx, int dy, int cButtons, int dwExtraInfo); 
+	}
+	class 输入 : IDeviceInput 
+	{
+		internal enum InputST
+		{
+			None,
+			TrueKeep,
+			TrueOnce,
+			FalseKeep,
+			FalseOnce
+		}
+		static Dictionary<int, int> forceMouse = new Dictionary<int, int>();
+		static Dictionary<int, int> forceKey = new Dictionary<int, int>();
+
+		internal static void ForceMouse(int mouseButton, InputST st)
+		{
+			forceMouse[mouseButton] = (int)st;
+		}
+		internal static void ForceKey(KeyCode keyCode, InputST st)
+		{
+			forceKey[(int)keyCode] = (int)st;
+		}
+		public bool AnyKey()
+		{
+			return Input.anyKey;
+		}
+
+		public bool AnyKeyDown()
+		{
+			return Input.anyKeyDown;
+		}
+
+		public bool GetMouseButtonUp(int button)
+		{
+			return Input.GetMouseButtonUp(button);
+		}
+
+		public static Vector2 forceAxis = Vector2.zero;
+
+		public float GetAxis(string axis)
+		{
+			if (axis == "Mouse X")
+			{
+				var x = forceAxis.x;
+				forceAxis.x = 0;
+				return Input.GetAxis(axis) + x;
+			}
+			if (axis == "Mouse Y")
+			{
+				var y = forceAxis.y;
+				forceAxis.y = 0;
+				return Input.GetAxis(axis) + y;
+			}
+			return Input.GetAxis(axis);
+		}
+
+		public bool GetKey(KeyCode keyCode)
+		{
+			if (forceKey.TryGetValue((int)keyCode, out var value) && value > 0)
+			{
+				switch (value)
+				{
+					case 1:
+						return true;
+					case 3:
+						return false;
+					case 2:
+						forceKey[(int)keyCode] = 0;
+						return true;
+					case 4:
+						forceKey[(int)keyCode] = 0;
+						return false;
+				}
+			}
+			return Input.GetKey(keyCode);
+		}
+
+		public bool GetKeyDown(KeyCode keyCode)
+		{
+			return Input.GetKeyDown(keyCode);
+		}
+
+		public bool GetMouseButton(int button)
+		{
+			if (forceMouse.TryGetValue(button, out var value) && value > 0)
+			{
+				switch (value)
+				{
+					case 1:
+						return true;
+					case 3:
+						return false;
+					case 2:
+						forceMouse[button] = 0;
+						return true;
+					case 4:
+						forceMouse[button] = 0;
+						return false;
+				}
+			}
+			if (button == 1 && AimBot.KeyCode_ == 2 && GetData.me.currentWeapon.Weapon != 3 && GetData.me.currentWeapon.Weapon != 4) 
+			{
+				return button == 0;
+			}
+			return Input.GetMouseButton(button);
+		}
+
+		public bool GetMouseButtonDown(int button)
+		{
+			return Input.GetMouseButtonDown(button);
+		}
 	}
 }

@@ -43,7 +43,7 @@ namespace H4ck.h4ckFuncs
 				{
 					continue;
 				}
-				Vector3 pos = entity.GetCompenstatePos(entity.fpos.Change.ࢱ);
+				Vector3 pos = entity.GetPosition2();
 				Vector3 vector = Camera.main.WorldToScreenPoint(PosHelper.EntityToWorld(pos) + new Vector3(0f, 180f, 0f));
 				if (!(vector.z < 0f))
 				{

@@ -21,7 +21,7 @@ namespace H4ck.h4ckFuncs
 			if (Input.GetKeyDown(KeyCode.F1)) { NoRecoil.isNorecoil = !NoRecoil.isNorecoil; }
 			if (Input.GetKeyDown(KeyCode.F2)) { showESP = !showESP; }
             if (Input.GetKeyDown(KeyCode.F3)) { AutoHit.autoShoot = !AutoHit.autoShoot; }
-            if (Input.GetKeyDown(KeyCode.F4)) { AimBot.KeyCode_ = (AimBot.KeyCode_ + 1) % 6; }
+            if (Input.GetKeyDown(KeyCode.F4)) { AimBot.KeyCode_ = (AimBot.KeyCode_ + 1) % 7; }
         }
 
         void OnGUI()
@@ -64,11 +64,11 @@ namespace H4ck.h4ckFuncs
 
             //Vector3 pos = player.GetPosition();
             //Vector3 pos = player.GetPosition2();
-            Vector3 pos = player.GetCompenstatePos(player.fpos.Change.ࢱ); //获取实体坐标
+            Vector3 pos = player.GetPosition2(); //获取实体坐标
 
             //Vector3 GetData.myPos = GetData.me.GetPosition();
             //Vector3 GetData.myPos = GetData.me.GetPosition2(); 
-            GetData.myPos = GetData.me.GetCompenstatePos(GetData.me.fpos.Change.ࢱ); //获取自身实体坐标 
+            GetData.myPos = GetData.me.GetPosition2(); //获取自身实体坐标 
 			if (player.GetTeam() == GetData.me.GetTeam()) { return; } //自己队友 -> 不绘制
 			Vector3 a = PosHelper.EntityToWorld(pos); //获取世界坐标
 			Vector3 b = Camera.main.WorldToScreenPoint(a); //获取屏幕坐标
